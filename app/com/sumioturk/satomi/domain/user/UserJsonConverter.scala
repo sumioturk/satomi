@@ -13,7 +13,11 @@ import play.api.libs.json.{JsValue, Json}
 
 object UserJsonConverter extends JsonConverter[User] {
   implicit def convertToJson(obj: User): JsValue = {
-    Json.toJson(Map("id" -> Json.toJson(obj.id), "name" -> Json.toJson(obj.name), "isGay" -> Json.toJson(obj.isGay)))
+    Json.toJson(Map(
+      "id" -> Json.toJson(obj.id),
+      "name" -> Json.toJson(obj.name),
+      "isGay" -> Json.toJson(obj.isGay)
+    ))
   }
 
   implicit def convertFromJson(json: JsValue): User = {

@@ -13,16 +13,18 @@ import com.sumioturk.satomi.domain.Entity
  *
  */
 
-class MongoRepository[T <: Entity](name: String, converter: DBObjectConverter[T], mongoColl: MongoCollection) extends Repository[T] {
+class MongoRepository[T <: Entity]
+(name: String, converter: DBObjectConverter[T], mongoColl: MongoCollection)
+  extends Repository[T] {
 
 
   def resolve(id: Int): Option[T] = {
-      mongoColl.findOne(MongoDBObject("id" -> id)) match {
-        case Some(user) =>
-          Some(converter.fromDBObject(user))
-        case None =>
-          None
-      }
+    mongoColl.findOne(MongoDBObject("id" -> id)) match {
+      case Some(user) =>
+        Some(converter.fromDBObject(user))
+      case None =>
+        None
+    }
   }
 
 
