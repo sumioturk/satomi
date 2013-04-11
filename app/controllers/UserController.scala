@@ -41,22 +41,22 @@ object UserController extends Controller {
       }
   }
 
-  def find(id: Int) = Action {
+  def find(id: String) = Action {
     userRepo.resolve(id) match {
       case None =>
-        NotFound("Not Fount %d".format(id))
+        NotFound("Not Fount %s".format(id))
       case Some(user) =>
         Ok(convertToJson(user))
     }
   }
 
-  def remove(id: Int) = Action {
+  def remove(id: String) = Action {
     userRepo.resolve(id) match {
       case None =>
-        NotFound("Not Found %d".format(id))
+        NotFound("Not Found %s".format(id))
       case Some(user) =>
         userRepo.remove(user)
-        Ok("Deleted %d".format(id))
+        Ok("Deleted %s".format(id))
     }
   }
 

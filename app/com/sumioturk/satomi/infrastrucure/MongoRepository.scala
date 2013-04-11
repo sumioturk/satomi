@@ -18,7 +18,7 @@ class MongoRepository[T <: Entity]
   extends Repository[T] {
 
 
-  def resolve(id: Int): Option[T] = {
+  def resolve(id: String): Option[T] = {
     mongoColl.findOne(MongoDBObject("id" -> id)) match {
       case Some(user) =>
         Some(converter.fromDBObject(user))

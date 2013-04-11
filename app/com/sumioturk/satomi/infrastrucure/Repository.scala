@@ -12,7 +12,7 @@ import com.sumioturk.satomi.domain.Entity
 
 trait Repository[T <: Entity] {
 
-  def resolve(id: Int): Option[T]
+  def resolve(id: String): Option[T]
 
   def store(entity: T): Unit
 
