@@ -1,4 +1,4 @@
-package com.sumioturk.satomi.infrastrucure
+package com.sumioturk.satomi.domain
 
 /**
  * (C) Copyright 2013 OMCAS Inc.
@@ -9,6 +9,6 @@ package com.sumioturk.satomi.infrastrucure
  */
 trait Entity {
 
-  val id: Int
+  val id: String
 
 }

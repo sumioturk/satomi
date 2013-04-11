@@ -1,10 +1,9 @@
 package com.sumioturk.satomi.infrastrucure
 
-import com.sumioturk.satomi.domain.{MongoDBObjectConverter, UserDBObjectConverter, User}
-import com.mongodb.casbah.{MongoConnection, MongoCollection, MongoClient}
+import com.mongodb.casbah.MongoCollection
 import com.mongodb.casbah.commons.MongoDBObject
-import play.api.libs.json.{JsValue, Json}
-import com.mongodb.DBObject
+import com.sumioturk.satomi.domain.converter.DBObjectConverter
+import com.sumioturk.satomi.domain.Entity
 
 /**
  * (C) Copyright 2013 OMCAS Inc.
@@ -13,13 +12,17 @@ import com.mongodb.DBObject
  * Time: 12:55 AM
  *
  */
-class MongoRepository[T <: Entity](implicit converter: MongoDBObjectConverter[T]) extends Repository[T] {
 
+class MongoRepository[T <: Entity](name: String, converter: DBObjectConverter[T], mongoColl: MongoCollection) extends Repository[T] {
 
-  val mongoColl = MongoConnection()("satomi")("users")
 
   def resolve(id: Int): Option[T] = {
-    Some(converter.fromDBObject(mongoColl.findOne(MongoDBObject("id" -> id)).get))
+      mongoColl.findOne(MongoDBObject("id" -> id)) match {
+        case Some(user) =>
+          Some(converter.fromDBObject(user))
+        case None =>
+          None
+      }
   }
 
 

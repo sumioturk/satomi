@@ -1,4 +1,4 @@
-package com.sumioturk.satomi.domain
+package com.sumioturk.satomi.domain.converter
 
 /**
  * (C) Copyright 2013 OMCAS Inc.

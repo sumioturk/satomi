@@ -1,5 +1,7 @@
 package com.sumioturk.satomi.infrastrucure
 
+import com.sumioturk.satomi.domain.Entity
+
 /**
  * (C) Copyright 2013 OMCAS Inc.
  * User: sumioturk
