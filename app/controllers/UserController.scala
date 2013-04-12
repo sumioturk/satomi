@@ -21,7 +21,6 @@ object UserController extends Controller {
   val mongoColl = MongoConnection()("satomi")("User")
 
   val userRepo = new MongoRepository[User](
-    User.getClass.getName,
     UserDBObjectConverter,
     mongoColl)
 
@@ -35,7 +34,7 @@ object UserController extends Controller {
             isGay = isGay.foldLeft("")(_ + _) == "true"
           )
           userRepo.store(user)
-            Ok(convertToJson(user))
+          Ok(convertToJson(user))
         case _ =>
           Forbidden("Invalid Params")
       }

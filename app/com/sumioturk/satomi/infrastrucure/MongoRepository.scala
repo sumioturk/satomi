@@ -14,7 +14,7 @@ import com.sumioturk.satomi.domain.Entity
  */
 
 class MongoRepository[T <: Entity]
-(name: String, converter: DBObjectConverter[T], mongoColl: MongoCollection)
+(converter: DBObjectConverter[T], mongoColl: MongoCollection)
   extends Repository[T] {
 
 
