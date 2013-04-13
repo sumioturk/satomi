@@ -17,5 +17,4 @@ trait DBObjectConverter[T] {
 
   def fromDBObject(dbObj: DBObject): T
 
-
 }

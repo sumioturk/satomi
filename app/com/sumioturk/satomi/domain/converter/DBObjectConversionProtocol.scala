@@ -3,13 +3,8 @@ package com.sumioturk.satomi.domain.converter
 /**
  * (C) Copyright 2013 OMCAS Inc.
  * User: sumioturk
- * Date: 4/11/13
- * Time: 12:38 AM
+ * Date: 4/12/13
+ * Time: 11:20 PM
  *
  */
 
-class DBObjectConversionException extends Exception {
-
-
-
-}

@@ -1,10 +1,11 @@
 package com.sumioturk.satomi.domain.user
 
-import play.api.libs.json.Json
-import scala.Int
 import com.mongodb.DBObject
 import com.mongodb.casbah.commons.MongoDBObject
-import com.sumioturk.satomi.domain.converter.{DBObjectConversionException, DBObjectConverter}
+import com.sumioturk.satomi.domain.converter.{JsonConversionProtocol, DBObjectConverter}
+import play.api.libs.json.Json._
+import JsonConversionProtocol.userRead
+import com.sumioturk.satomi.domain.converter.exception.DBObjectConversionException
 
 /**
  * (C) Copyright 2013 OMCAS Inc.
@@ -13,6 +14,7 @@ import com.sumioturk.satomi.domain.converter.{DBObjectConversionException, DBObj
  * Time: 12:27 AM
  *
  */
+
 object UserDBObjectConverter extends DBObjectConverter[User] {
   def toDBObject(obj: User): DBObject = {
     val builder = MongoDBObject.newBuilder
@@ -23,11 +25,7 @@ object UserDBObjectConverter extends DBObjectConverter[User] {
   }
 
   def fromDBObject(dbObject: DBObject): User = {
-    val json = Json.parse(dbObject.toString)
-    User(
-      ((json \ "id").asOpt[String]).getOrElse(throw new DBObjectConversionException),
-      ((json \ "name").asOpt[String]).getOrElse(throw new DBObjectConversionException),
-      ((json \ "isGay").asOpt[Boolean].getOrElse(throw new DBObjectConversionException))
-    )
+    val json = parse(dbObject.toString)
+    fromJson(json).asOpt.getOrElse(throw new DBObjectConversionException)
   }
 }

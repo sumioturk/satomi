@@ -1,4 +1,4 @@
-package com.sumioturk.satomi.domain.converter
+package com.sumioturk.satomi.domain.converter.exception
 
 /**
  * (C) Copyright 2013 OMCAS Inc.

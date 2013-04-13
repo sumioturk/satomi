@@ -1,16 +1,17 @@
 package controllers
 
 import play.api.mvc._
-import com.sumioturk.satomi.domain.user.{UserDBObjectConverter, UserJsonConverter, User}
-import com.sumioturk.satomi.domain.user.UserJsonConverter._
+import com.sumioturk.satomi.domain.user.{UserDBObjectConverter, User}
 import com.sumioturk.satomi.infrastrucure.MongoRepository
+import com.sumioturk.satomi.domain.converter.JsonConversionProtocol
+import JsonConversionProtocol.userWrite
 import com.mongodb.casbah.MongoConnection
-import com.mongodb.{CommandResult, WriteResult}
 import java.util.UUID
 import play.api.libs.concurrent.Akka
 import play.api.Play.current
 import scala.concurrent.ExecutionContext
 import ExecutionContext.Implicits.global
+import play.api.libs.json.Json._
 
 /**
  * (C) Copyright 2013 OMCAS Inc.
@@ -28,7 +29,7 @@ object UserController extends Controller {
     UserDBObjectConverter,
     mongoColl)
 
-  def register() = Action {
+  def create() = Action {
     req =>
       (req.queryString.get("name"), req.queryString.get("isGay")) match {
         case (Some(name), Some(isGay)) =>
@@ -39,14 +40,14 @@ object UserController extends Controller {
           )
           val promiseOfWriteResult = Akka.future(userRepo.store(user))
           Async {
-            promiseOfWriteResult.map(wr => Ok(convertToJson(user)))
+            promiseOfWriteResult.map(wr => Ok(toJson(user)))
           }
         case _ =>
           Forbidden("Invalid Params")
       }
   }
 
-  def find(id: String) = Action {
+  def read(id: String) = Action {
     Async {
       Akka.future(userRepo.resolve(id)) map {
         user: Option[User] =>
@@ -54,13 +55,13 @@ object UserController extends Controller {
             case None =>
               NotFound("Not Found %s".format(id))
             case Some(user) =>
-              Ok(convertToJson(user))
+              Ok(toJson(user))
           }
       }
     }
   }
 
-  def remove(id: String) = Action {
+  def delete(id: String) = Action {
     Async {
       Akka.future(userRepo.resolve(id)) map {
         userOpt: Option[User] =>
@@ -73,6 +74,28 @@ object UserController extends Controller {
           }
       }
     }
+  }
+
+  def update(id: String) = Action {
+    req =>
+      (req.getQueryString("name"), req.getQueryString("isGay")) match {
+        case (Some(name), Some(isGay)) =>
+          Async {
+            Akka.future(userRepo.resolve(id)).map {
+              userOpt: Option[User] =>
+                userOpt match {
+                  case None =>
+                    NotFound("Not Found %s".format(id))
+                  case Some(user) =>
+                    val newUser = User(id = user.id, name = name, isGay = isGay == "true")
+                    userRepo.update(newUser)
+                    Ok(toJson(newUser))
+                }
+            }
+          }
+        case _ =>
+          Forbidden("Invalid Params")
+      }
   }
 
 }
