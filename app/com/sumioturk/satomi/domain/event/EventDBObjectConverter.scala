@@ -1,11 +1,11 @@
 package com.sumioturk.satomi.domain.event
 
-import com.sumioturk.satomi.domain.converter.DBObjectConverter
+import com.sumioturk.satomi.domain.converter.{JsonConversionProtocol, DBObjectConverter}
 import com.mongodb.DBObject
 import com.mongodb.casbah.commons.MongoDBObject
 import play.api.libs.json.Json._
 import com.sumioturk.satomi.domain.converter.exception.DBObjectConversionException
-import com.sumioturk.satomi.domain.converter.JsonConversionProtocol.eventRead
+import play.api.libs.json.Reads
 
 /**
  * (C) Copyright 2013 OMCAS Inc.
@@ -15,8 +15,11 @@ import com.sumioturk.satomi.domain.converter.JsonConversionProtocol.eventRead
  *
  */
 
-object EventDBObjectConverter extends DBObjectConverter[Event] {
-  def toDBObject(obj: Event): DBObject = {
+class EventDBObjectConverter[T](reads: Reads[T]) extends DBObjectConverter[Event[T]] {
+
+  implicit val eventReads = JsonConversionProtocol.getEventReads[T](reads)
+
+  def toDBObject(obj: Event[T]): DBObject = {
     val builder = MongoDBObject.newBuilder
     builder += "id" -> obj.id
     builder += "createTime" -> obj.id
@@ -29,7 +32,7 @@ object EventDBObjectConverter extends DBObjectConverter[Event] {
     builder.result()
   }
 
-  def fromDBObject(dbObj: DBObject): Event = {
-    fromJson(parse(dbObj.toString)).getOrElse(throw new DBObjectConversionException)
+  def fromDBObject(dbObj: DBObject): Event[T] = {
+    fromJson[Event[T]](parse(dbObj.toString)).getOrElse(throw new DBObjectConversionException)
   }
 }

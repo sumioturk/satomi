@@ -9,5 +9,7 @@ GET     /user/:id                   controllers.UserController.read(id: String)
 DELETE  /user/:id                   controllers.UserController.delete(id: String)
 PUT     /user/:id                   controllers.UserController.update(id: String)
 
-# Map static resources from the /public folder to the /assets URL path
+GET     /event/show                 controllers.EventController.show
+
+# Map static resources from the /public folder to the /assets URL pahth
 GET     /assets/*file               controllers.Assets.at(path="/public", file)

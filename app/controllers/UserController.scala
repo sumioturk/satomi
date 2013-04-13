@@ -3,8 +3,6 @@ package controllers
 import play.api.mvc._
 import com.sumioturk.satomi.domain.user.{UserDBObjectConverter, User}
 import com.sumioturk.satomi.infrastrucure.MongoRepository
-import com.sumioturk.satomi.domain.converter.JsonConversionProtocol
-import JsonConversionProtocol.userWrite
 import com.mongodb.casbah.MongoConnection
 import java.util.UUID
 import play.api.libs.concurrent.Akka
@@ -12,6 +10,7 @@ import play.api.Play.current
 import scala.concurrent.ExecutionContext
 import ExecutionContext.Implicits.global
 import play.api.libs.json.Json._
+import com.sumioturk.satomi.domain.converter.JsonConversionProtocol.userWrite
 
 /**
  * (C) Copyright 2013 OMCAS Inc.

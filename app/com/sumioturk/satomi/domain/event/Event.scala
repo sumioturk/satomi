@@ -12,7 +12,7 @@ import com.sumioturk.satomi.domain.event.InstructionType.InstructionType
  */
 
 case class
-Event
+Event[T]
 (
   id: String,
   createTime: Long,
@@ -20,7 +20,7 @@ Event
   invokerId: String,
   toChannelId: String,
   position: Long,
-  instruction: InstructionType,
+  instruction: T,
   message: String
 ) extends Entity
 
