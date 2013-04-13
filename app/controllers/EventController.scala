@@ -2,10 +2,12 @@ package controllers
 
 import com.mongodb.casbah.MongoConnection
 import com.sumioturk.satomi.domain.event.{Event, EventDBObjectConverter}
-import com.sumioturk.satomi.domain.user.User
+import com.sumioturk.satomi.domain.user.{UserDBObjectConverter, User}
 import play.api.mvc._
 import play.api.libs.json.Json
 import com.sumioturk.satomi.domain.converter.JsonConversionProtocol._
+import com.mongodb.casbah.commons.MongoDBObject
+import java.util.UUID
 
 
 /**
@@ -20,25 +22,42 @@ object EventController extends Controller {
 
   val mongoColl = MongoConnection()("satomi")("Event")
 
-  val converter = new EventDBObjectConverter[User](userRead)
+  val converter = new EventDBObjectConverter[User](userRead, UserDBObjectConverter)
 
   implicit val eventWrite = getEventWrites[User](userWrite)
 
   def show = Action {
-    val newEvent =
-      Event(
-        id = "this is id",
-        createTime = 12345,
-        broadcastTime = 23456,
-        invokerId = "i am invoker",
-        toChannelId = "this is channel id",
-        position = 34567,
-        instruction = User("userid", "name", false),
-        message = "yello"
-      )
+    val uuid = UUID.randomUUID().toString
+    val name = "John Helington"
+    val isGay = false
+    val user = User(
+      id = uuid,
+      name = name,
+      isGay = isGay
+    )
 
-    mongoColl += converter.toDBObject(newEvent)
-    Ok(Json.toJson(newEvent))
+    val eventId = UUID.randomUUID().toString
+    val eventCreateTime = 1234L
+    val eventBroadcastTime = 2345L
+    val eventInvokerId = UUID.randomUUID().toString
+    val eventToChannelId = UUID.randomUUID().toString
+    val eventPosition = 34567L
+    val eventMessage = "watzup"
+
+    val event = Event[User](
+      id = eventId,
+      createTime = eventCreateTime,
+      broadcastTime = eventBroadcastTime,
+      invokerId = eventInvokerId,
+      toChannelId = eventToChannelId,
+      position = eventPosition,
+      instruction = user,
+      message = eventMessage
+    )
+    mongoColl += converter.toDBObject(event)
+    Ok(Json.toJson[Event[User]](converter.fromDBObject(mongoColl.findOne(MongoDBObject("id" -> eventId)).get)))
+
+
   }
 
 

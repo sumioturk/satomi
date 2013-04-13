@@ -25,7 +25,6 @@ object UserDBObjectConverter extends DBObjectConverter[User] {
   }
 
   def fromDBObject(dbObject: DBObject): User = {
-    val json = parse(dbObject.toString)
-    fromJson(json).asOpt.getOrElse(throw new DBObjectConversionException)
+    fromJson(parse(dbObject.toString)).asOpt.getOrElse(throw new DBObjectConversionException)
   }
 }

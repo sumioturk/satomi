@@ -11,5 +11,6 @@ PUT     /user/:id                   controllers.UserController.update(id: String
 
 GET     /event/show                 controllers.EventController.show
 
+GET     /stream/connect/:userId/:channelId controllers.StreamController.connect(userId: String, channelId: String)
 # Map static resources from the /public folder to the /assets URL pahth
 GET     /assets/*file               controllers.Assets.at(path="/public", file)

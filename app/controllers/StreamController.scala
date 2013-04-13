@@ -1,16 +1,54 @@
 package controllers
 
-import play.mvc.Controller
 
-/**
- * (C) Copyright 2013 OMCAS Inc.
- * User: sumioturk
- * Date: 4/13/13
- * Time: 12:24 PM
- *
- */
+import play.api.mvc._
 
-class StreamController extends Controller {
+import play.api.libs.iteratee._
+import play.api.libs.concurrent.Promise
+import scala.concurrent.ExecutionContext
+import ExecutionContext.Implicits.global
+import com.mongodb.casbah.MongoConnection
+import com.sumioturk.satomi.domain.user.UserDBObjectConverter
+import play.api.libs.json.Json
+import com.sumioturk.satomi.domain.converter.JsonConversionProtocol.userWrite
 
+
+object StreamController extends Controller {
+
+  val mongoColl = MongoConnection()("satomi")("User")
+
+  /**
+   * A String Enumerator producing a formatted Time message every 100 millis.
+   * A callback enumerator is pure an can be applied on several Iteratee.
+   */
+  lazy val clock: Enumerator[String] = {
+    Enumerator.generateM {
+      Promise.timeout(chunk, 2000)
+    }
+  }
+
+  def index = Action {
+    Ok
+  }
+
+  private def chunk: Option[String] = {
+    System.out.println("chunk")
+    val users = mongoColl.find.map {
+      user =>
+        Json.toJson(UserDBObjectConverter.fromDBObject(user)).toString()
+    }
+
+    users.isEmpty match {
+      case true =>
+        None
+      case false =>
+        Some(users.foldLeft("")(_ + "\r\n" +  _) + "\r\n")
+    }
+
+  }
+
+  def connect(userId: String, channelId: String) = Action {
+    Ok.stream(clock)
+  }
 
 }

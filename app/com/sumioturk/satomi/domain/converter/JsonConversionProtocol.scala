@@ -45,7 +45,7 @@ object JsonConversionProtocol {
               (json \ "invokerId").validate[String].flatMap(invokerId =>
                 (json \ "toChannelId").validate[String].flatMap(toChannelId =>
                   (json \ "position").validate[Long].flatMap(position =>
-                    (json \ "instruction").validate[JsValue].flatMap(instruction =>
+                    (json \ "instruction").validate[JsObject].flatMap(instruction =>
                       (json \ "message").validate[String].map(message =>
                         Event[T](
                           id = id,
@@ -75,7 +75,7 @@ object JsonConversionProtocol {
         JsObject(List(
           "id" -> JsString(event.id),
           "createTime" -> JsNumber(event.createTime),
-          "broadcastTime" -> JsNumber(event.createTime),
+          "broadcastTime" -> JsNumber(event.broadcastTime),
           "invokerId" -> JsString(event.invokerId),
           "toChannelId" -> JsString(event.toChannelId),
           "position" -> JsNumber(event.position),

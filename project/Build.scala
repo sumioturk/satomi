@@ -8,6 +8,7 @@ object ApplicationBuild extends Build {
   val appVersion = "1.0-SNAPSHOT"
   val casbah = "org.mongodb" %% "casbah" % "2.5.0"
   val salat = "com.novus" %% "salat" % "1.9.2-SNAPSHOT"
+  val specs2 = "org.specs2" %% "specs2" % "1.9" % "test"
 
 
   object Resolvers {
@@ -18,7 +19,8 @@ object ApplicationBuild extends Build {
     // Add your project dependencies here,
     jdbc,
     anorm,
-    casbah
+    casbah,
+    specs2
   )
 
 
