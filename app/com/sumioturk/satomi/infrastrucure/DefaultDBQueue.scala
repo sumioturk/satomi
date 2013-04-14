@@ -47,4 +47,8 @@ class DefaultDBQueue(val id: String) extends DBQueue {
           compareTo ObjectId.massageToObjectId(from)) > 0
     ).toList
   }
+
+  def store(obj: DBObject) = {
+    db += obj
+  }
 }

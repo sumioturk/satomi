@@ -14,6 +14,8 @@ trait DBQueue {
 
   val id: String
 
+  def store(obj: DBObject)
+
   def resolve(id: String): Option[DBObject]
 
   def latest(): Option[DBObject]

@@ -78,7 +78,18 @@ object StreamController extends Controller {
   }
 
   def connect(userId: String, channelId: String) = Action {
-    Ok.stream(pollMQ)
+    req =>
+      req.getQueryString("key") match {
+        case None =>
+          Forbidden("You are not authorized")
+        case Some(string) =>
+          string match {
+            case "secret" =>
+              Ok.stream(pollMQ)
+            case _ =>
+              Forbidden("You are not authorized")
+          }
+      }
   }
 
 }

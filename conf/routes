@@ -4,13 +4,18 @@
 
 # Home page
 GET     /                           controllers.Application.index
+
+# User API
 POST    /user                       controllers.UserController.create()
 GET     /user/:id                   controllers.UserController.read(id: String)
 DELETE  /user/:id                   controllers.UserController.delete(id: String)
 PUT     /user/:id                   controllers.UserController.update(id: String)
 
+# Event API
 GET     /event/show                 controllers.EventController.show
 
+# Stream API
 GET     /stream/connect/:userId/:channelId controllers.StreamController.connect(userId: String, channelId: String)
+
 # Map static resources from the /public folder to the /assets URL pahth
 GET     /assets/*file               controllers.Assets.at(path="/public", file)
