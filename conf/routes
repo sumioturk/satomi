@@ -12,7 +12,8 @@ DELETE  /user/:id                   controllers.UserController.delete(id: String
 PUT     /user/:id                   controllers.UserController.update(id: String)
 
 # Event API
-GET     /event/show                 controllers.EventController.show
+GET     /event/show                         controllers.EventController.show
+GET     /event/message/:channelId/:text     controllers.EventController.message(channelId: String, text: String)
 
 # Stream API
 GET     /stream/connect/:userId/:channelId controllers.StreamController.connect(userId: String, channelId: String)

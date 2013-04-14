@@ -14,8 +14,8 @@ import com.mongodb.DBObject
 
 trait DBObjectConverter[T] {
 
-  def toDBObject(obj: T): DBObject
+  implicit def toDBObject(obj: T): DBObject
 
-  def fromDBObject(dbObj: DBObject): T
+  implicit def fromDBObject(dbObj: DBObject): T
 
 }

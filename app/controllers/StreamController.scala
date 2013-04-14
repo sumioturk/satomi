@@ -7,13 +7,14 @@ import play.api.libs.iteratee._
 import play.api.libs.concurrent.Promise
 import scala.concurrent.{Future, ExecutionContext}
 import ExecutionContext.Implicits.global
-import com.mongodb.casbah.MongoConnection
+import com.mongodb.casbah.{MongoCollection, MongoConnection}
 import com.sumioturk.satomi.domain.user.{User, UserDBObjectConverter}
 import play.api.libs.json.Json
 import play.api.libs.iteratee.Enumerator.TreatCont0
 import java.util.concurrent.TimeUnit
 import org.bson.types.ObjectId
-import com.sumioturk.satomi.domain.user.UserJsonFormat._
+import com.sumioturk.satomi.domain.message.MessageJsonFormat._
+import com.sumioturk.satomi.domain.message.MessageDBObjectConverter
 
 object StreamController extends Controller {
 
@@ -26,9 +27,9 @@ object StreamController extends Controller {
    * A callback enumerator is pure an can be applied on several Iteratee.
    */
 
-  val pollMQ: Enumerator[String] = {
+  def pollMQ(db: MongoCollection): Enumerator[String] = {
     generateM {
-      Promise.timeout(chunk, 10, TimeUnit.MILLISECONDS)
+      Promise.timeout(chunk(db), 10, TimeUnit.MILLISECONDS)
     }
   }
 
@@ -54,18 +55,18 @@ object StreamController extends Controller {
     }
   }
 
-  private def chunk: Option[String] = {
+  private def chunk(db: MongoCollection): Option[String] = {
     if (sent isEmpty) {
       sent += UserDBObjectConverter.toDBObject(User("", "", false))
     }
     val last = sent.last.get("_id").asInstanceOf[ObjectId]
     val users
-    = mongoColl.find.filter(obj => obj.get("_id")
+    = db.find.filter(obj => obj.get("_id")
       .asInstanceOf[ObjectId].compareTo(last) > 0
     ).map {
       user =>
         sent += user
-        Json.toJson(UserDBObjectConverter.fromDBObject(user))
+        Json.toJson(MessageDBObjectConverter.fromDBObject(user))
     }
 
     users.isEmpty match {
@@ -85,7 +86,8 @@ object StreamController extends Controller {
         case Some(string) =>
           string match {
             case "secret" =>
-              Ok.stream(pollMQ)
+              val db = MongoConnection()("satomi")(channelId.toString)
+              Ok.stream(pollMQ(db))
             case _ =>
               Forbidden("You are not authorized")
           }

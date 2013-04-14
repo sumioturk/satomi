@@ -8,6 +8,8 @@ import play.api.libs.json.Json
 import EventJsonFormat._
 import com.mongodb.casbah.commons.MongoDBObject
 import java.util.UUID
+import com.sumioturk.satomi.domain.message.{MessageDBObjectConverter, MessageJsonFormat, Message}
+import org.bson.types.ObjectId
 
 
 /**
@@ -20,7 +22,8 @@ import java.util.UUID
 
 object EventController extends Controller {
 
-  val mongoColl = MongoConnection()("satomi")("Event")
+  val userEvents = MongoConnection()("satomi")("UserEvent")
+  val playEvent = MongoConnection()("satomi")("PlayEvent")
 
   val converter = new EventDBObjectConverter[User](UserJsonFormat.userRead, UserDBObjectConverter)
 
@@ -52,10 +55,26 @@ object EventController extends Controller {
       body = user
     )
 
-    mongoColl += converter.toDBObject(event)
-    Ok(Json.toJson[Event[User]](converter.fromDBObject(mongoColl.findOne(MongoDBObject("id" -> eventId)).get)))
+    userEvents += converter.toDBObject(event)
+    Ok(Json.toJson[Event[User]](converter.fromDBObject(userEvents.findOne(MongoDBObject("id" -> eventId)).get)))
+
+  }
 
 
+  def message(channelId: String, text: String) = Action {
+    val userConverter = new EventDBObjectConverter[Message](MessageJsonFormat.messageRead, MessageDBObjectConverter)
+    val event = Event[Message](
+      id = ObjectId.get.toString,
+      invokerId = "1",
+      createTime = System.currentTimeMillis(),
+      broadcastTime = System.currentTimeMillis(),
+      toChannelId = channelId,
+      bodyType = InstructionType.message,
+      body = Message(text)
+    )
+    val messageEvents = MongoConnection()("satomi")(channelId.toString)
+    messageEvents += userConverter.toDBObject(event)
+    Ok
   }
 
 

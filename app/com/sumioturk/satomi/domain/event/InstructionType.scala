@@ -10,13 +10,14 @@ package com.sumioturk.satomi.domain.event
 
 object InstructionType extends Enumeration {
 
-    type InstructionType = Value
+  type InstructionType = Value
 
-    val play = Value("play")
-    val pause = Value("pause")
-    val seek = Value("seek")
-    val stop = Value("stop")
-    val jump = Value("jump")
-    val unknown = Value("unknown")
+  val play = Value("play")
+  val pause = Value("pause")
+  val seek = Value("seek")
+  val stop = Value("stop")
+  val jump = Value("jump")
+  val message = Value("message")
+  val unknown = Value("unknown")
 
 }
