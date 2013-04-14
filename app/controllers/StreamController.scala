@@ -73,7 +73,7 @@ object StreamController extends Controller {
         None
       case false =>
         System.out.println("there was a chunk");
-        Some(users.foldLeft("")(_ + "\r\n\r\n" + _) + "\r\n\r\n")
+        Some(users.foldLeft("")(_ + "\r\n" + _) + "\r\n")
     }
   }
 
