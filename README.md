@@ -1,4 +1,2 @@
 # satomi
-State of the crap Play Framework Chat Server
-Clients connect to a server via HTTP
-
+Chat server on play framework a.k.a a piece of garbage.
