@@ -24,6 +24,7 @@ object EventController extends Controller {
 
   val userEvents = MongoConnection()("satomi")("UserEvent")
   val playEvent = MongoConnection()("satomi")("PlayEvent")
+  val messageEvents = MongoConnection()("satomi")("MessageEvent")
 
   val converter = new EventDBObjectConverter[User](UserJsonFormat.userRead, UserDBObjectConverter)
 
@@ -72,7 +73,6 @@ object EventController extends Controller {
       bodyType = InstructionType.message,
       body = Message(text)
     )
-    val messageEvents = MongoConnection()("satomi")(channelId.toString)
     messageEvents += userConverter.toDBObject(event)
     Ok
   }

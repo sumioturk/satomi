@@ -7,29 +7,35 @@ import play.api.libs.iteratee._
 import play.api.libs.concurrent.Promise
 import scala.concurrent.{Future, ExecutionContext}
 import ExecutionContext.Implicits.global
-import com.mongodb.casbah.{MongoCollection, MongoConnection}
+import com.mongodb.casbah.MongoConnection
 import com.sumioturk.satomi.domain.user.{User, UserDBObjectConverter}
 import play.api.libs.json.Json
 import play.api.libs.iteratee.Enumerator.TreatCont0
 import java.util.concurrent.TimeUnit
 import org.bson.types.ObjectId
-import com.sumioturk.satomi.domain.message.MessageJsonFormat._
-import com.sumioturk.satomi.domain.message.MessageDBObjectConverter
+import com.sumioturk.satomi.domain.event.EventDBObjectConverter
+import com.sumioturk.satomi.domain.event.EventJsonFormat._
+import com.sumioturk.satomi.domain.message.MessageJsonFormat.messageWrite
+import scala.Some
+import com.sumioturk.satomi.domain.message.{MessageJsonFormat, MessageDBObjectConverter, Message}
 
 object StreamController extends Controller {
 
 
   val sent = MongoConnection()("satomi")("sent")
+  val messageEvent = MongoConnection()("satomi")("MessageEvent")
   val mongoColl = MongoConnection()("satomi")("User")
+
+  implicit val eventWrite = getEventWrites[Message]
 
   /**
    * A String Enumerator producing a formatted Time message every 100 millis.
    * A callback enumerator is pure an can be applied on several Iteratee.
    */
 
-  def pollMQ(db: MongoCollection): Enumerator[String] = {
+  def pollMQ(channelId: String): Enumerator[String] = {
     generateM {
-      Promise.timeout(chunk(db), 10, TimeUnit.MILLISECONDS)
+      Promise.timeout(chunk(channelId), 10, TimeUnit.MILLISECONDS)
     }
   }
 
@@ -55,39 +61,45 @@ object StreamController extends Controller {
     }
   }
 
-  private def chunk(db: MongoCollection): Option[String] = {
+  private def chunk(channelId: String): Option[String] = {
     if (sent isEmpty) {
       sent += UserDBObjectConverter.toDBObject(User("", "", false))
     }
     val last = sent.last.get("_id").asInstanceOf[ObjectId]
-    val users
-    = db.find.filter(obj => obj.get("_id")
-      .asInstanceOf[ObjectId].compareTo(last) > 0
+
+    val messages = messageEvent.find.filter(
+      obj => obj.get("_id").asInstanceOf[ObjectId].compareTo(last) > 0
+    ).filter(
+      message => message.get("toChannelId").toString == channelId
     ).map {
-      user =>
-        sent += user
-        Json.toJson(MessageDBObjectConverter.fromDBObject(user))
+      message =>
+        sent += message
+        Json.toJson(
+          new EventDBObjectConverter[Message](
+            MessageJsonFormat.messageRead,
+            MessageDBObjectConverter
+          ).fromDBObject(message))
     }
 
-    users.isEmpty match {
+    messages.isEmpty match {
       case true =>
         None
       case false =>
         System.out.println("there was a chunk");
-        Some(users.foldLeft("")(_ + "\r\n" + _) + "\r\n")
+        Some(messages.foldLeft("")(_ + "\r\n" + _) + "\r\n")
     }
   }
 
   def connect(userId: String, channelId: String) = Action {
     req =>
+      sent.drop()
       req.getQueryString("key") match {
         case None =>
           Forbidden("You are not authorized")
         case Some(string) =>
           string match {
             case "secret" =>
-              val db = MongoConnection()("satomi")(channelId.toString)
-              Ok.stream(pollMQ(db))
+              Ok.stream(pollMQ(channelId))
             case _ =>
               Forbidden("You are not authorized")
           }
