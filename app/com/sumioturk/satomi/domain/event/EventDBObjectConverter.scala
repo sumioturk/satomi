@@ -1,11 +1,11 @@
 package com.sumioturk.satomi.domain.event
 
-import com.sumioturk.satomi.domain.converter.{JsonConversionProtocol, DBObjectConverter}
+import com.sumioturk.satomi.domain.converter.DBObjectConverter
 import com.mongodb.DBObject
 import com.mongodb.casbah.commons.MongoDBObject
 import play.api.libs.json.Json._
 import com.sumioturk.satomi.domain.converter.exception.DBObjectConversionException
-import play.api.libs.json.{Writes, Reads}
+import play.api.libs.json.Reads
 
 /**
  * (C) Copyright 2013 OMCAS Inc.
@@ -17,7 +17,7 @@ import play.api.libs.json.{Writes, Reads}
 
 class EventDBObjectConverter[T](reads: Reads[T], dbConverter: DBObjectConverter[T]) extends DBObjectConverter[Event[T]] {
 
-  implicit val eventReads = JsonConversionProtocol.getEventReads[T](reads)
+  implicit val eventReads = EventJsonFormat.getEventReads[T](reads)
 
   def toDBObject(obj: Event[T]): DBObject = {
     val builder = MongoDBObject.newBuilder
@@ -26,9 +26,8 @@ class EventDBObjectConverter[T](reads: Reads[T], dbConverter: DBObjectConverter[
     builder += "broadcastTime" -> obj.broadcastTime
     builder += "invokerId" -> obj.invokerId
     builder += "toChannelId" -> obj.toChannelId
-    builder += "position" -> obj.position
-    builder += "instruction" -> dbConverter.toDBObject(obj.instruction)
-    builder += "message" -> obj.message
+    builder += "bodyType" -> obj.bodyType.toString
+    builder += "body" -> dbConverter.toDBObject(obj.body)
     builder.result()
   }
 

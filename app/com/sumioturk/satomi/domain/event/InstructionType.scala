@@ -7,6 +7,7 @@ package com.sumioturk.satomi.domain.event
  * Time: 11:47 PM
  *
  */
+
 object InstructionType extends Enumeration {
 
     type InstructionType = Value

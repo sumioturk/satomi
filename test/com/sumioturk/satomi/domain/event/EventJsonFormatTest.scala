@@ -1,20 +1,20 @@
-package com.sumioturk.satomi.domain.converter
+package com.sumioturk.satomi.domain.event
 
-import com.sumioturk.satomi.domain.user.User
 import java.util.UUID
 import play.api.libs.json.Json
-import com.sumioturk.satomi.domain.converter.JsonConversionProtocol._
-import com.sumioturk.satomi.domain.event.Event
-
+import com.sumioturk.satomi.domain.event.EventJsonFormat._
+import com.sumioturk.satomi.domain.user.User
+import com.sumioturk.satomi.domain.user.UserJsonFormat._
 
 /**
  * (C) Copyright 2013 OMCAS Inc.
  * User: sumioturk
- * Date: 4/13/13
- * Time: 5:27 PM
+ * Date: 4/14/13
+ * Time: 1:48 PM
  *
  */
-class JsonConversionProtocolTest extends org.specs2.mutable.Specification {
+
+class EventJsonFormatTest extends org.specs2.mutable.Specification {
 
   val uuid = UUID.randomUUID().toString
   val name = "John Helington"
@@ -32,14 +32,8 @@ class JsonConversionProtocolTest extends org.specs2.mutable.Specification {
   val eventToChannelId = UUID.randomUUID().toString
   val eventPosition = 34567L
   val eventInstruction = UUID.randomUUID().toString
+  val eventBodyType = InstructionType.play
   val eventMessage = "watzup"
-
-
-  "User" should {
-    "be converted to Json vice versa" in {
-      user must_== Json.fromJson(Json.toJson(user)).get
-    }
-  }
 
   "Event[User]" should {
     "be converted to Json vice versa" in {
@@ -51,13 +45,10 @@ class JsonConversionProtocolTest extends org.specs2.mutable.Specification {
         broadcastTime = eventBroadcastTime,
         invokerId = eventInvokerId,
         toChannelId = eventToChannelId,
-        position = eventPosition,
-        instruction = user,
-        message = eventMessage
+        bodyType = InstructionType.play,
+        body = user
       )
       event must_== Json.fromJson[Event[User]](Json.toJson(event)).get
     }
   }
-
-
 }

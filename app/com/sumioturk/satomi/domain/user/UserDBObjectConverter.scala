@@ -2,10 +2,10 @@ package com.sumioturk.satomi.domain.user
 
 import com.mongodb.DBObject
 import com.mongodb.casbah.commons.MongoDBObject
-import com.sumioturk.satomi.domain.converter.{JsonConversionProtocol, DBObjectConverter}
+import com.sumioturk.satomi.domain.converter.DBObjectConverter
 import play.api.libs.json.Json._
-import JsonConversionProtocol.userRead
 import com.sumioturk.satomi.domain.converter.exception.DBObjectConversionException
+import com.sumioturk.satomi.domain.user.UserJsonFormat._
 
 /**
  * (C) Copyright 2013 OMCAS Inc.

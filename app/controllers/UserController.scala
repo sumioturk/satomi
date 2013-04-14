@@ -10,7 +10,7 @@ import play.api.Play.current
 import scala.concurrent.ExecutionContext
 import ExecutionContext.Implicits.global
 import play.api.libs.json.Json._
-import com.sumioturk.satomi.domain.converter.JsonConversionProtocol.userWrite
+import com.sumioturk.satomi.domain.user.UserJsonFormat._
 
 /**
  * (C) Copyright 2013 OMCAS Inc.

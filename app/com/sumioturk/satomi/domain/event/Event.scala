@@ -19,9 +19,8 @@ Event[T]
   broadcastTime: Long,
   invokerId: String,
   toChannelId: String,
-  position: Long,
-  instruction: T,
-  message: String
+  bodyType: InstructionType,
+  body: T
 ) extends Entity
 
 

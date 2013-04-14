@@ -11,6 +11,7 @@ import com.mongodb.DBObject
  * Time: 12:24 AM
  *
  */
+
 trait DBObjectConverter[T] {
 
   def toDBObject(obj: T): DBObject
