@@ -4,13 +4,13 @@ import play.api.mvc._
 import com.sumioturk.satomi.domain.user.{UserDBObjectConverter, User}
 import com.sumioturk.satomi.infrastrucure.MongoRepository
 import com.mongodb.casbah.MongoConnection
-import java.util.UUID
 import play.api.libs.concurrent.Akka
 import play.api.Play.current
 import scala.concurrent.ExecutionContext
 import ExecutionContext.Implicits.global
 import play.api.libs.json.Json._
 import com.sumioturk.satomi.domain.user.UserJsonFormat._
+import org.bson.types.ObjectId
 
 /**
  * (C) Copyright 2013 OMCAS Inc.
@@ -33,7 +33,7 @@ object UserController extends Controller {
       (req.queryString.get("name"), req.queryString.get("isGay")) match {
         case (Some(name), Some(isGay)) =>
           val user = User(
-            id = UUID.randomUUID().toString,
+            id = ObjectId.get().toString,
             name = name.foldLeft("")(_ + _),
             isGay = isGay.foldLeft("")(_ + _) == "true"
           )

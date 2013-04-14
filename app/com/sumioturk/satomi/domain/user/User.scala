@@ -1,6 +1,5 @@
 package com.sumioturk.satomi.domain.user
 
-import com.mongodb.casbah.commons.MongoDBObject
 import com.sumioturk.satomi.domain.Entity
 
 /**
@@ -10,4 +9,5 @@ import com.sumioturk.satomi.domain.Entity
  * Time: 12:23 AM
  *
  */
+
 case class User(id: String, name: String, isGay: Boolean) extends Entity
