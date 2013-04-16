@@ -8,7 +8,7 @@ package com.sumioturk.satomi.domain.event
  *
  */
 
-object InstructionType extends Enumeration {
+object EventType extends Enumeration {
 
   type InstructionType = Value
 

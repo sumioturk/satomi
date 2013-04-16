@@ -1,7 +1,7 @@
 package controllers
 
 import com.mongodb.casbah.MongoConnection
-import com.sumioturk.satomi.domain.event.{InstructionType, EventJsonFormat, Event, EventDBObjectConverter}
+import com.sumioturk.satomi.domain.event.{EventType, EventJsonFormat, Event, EventDBObjectConverter}
 import com.sumioturk.satomi.domain.user.{UserJsonFormat, UserDBObjectConverter, User}
 import play.api.mvc._
 import play.api.libs.json.Json
@@ -52,7 +52,7 @@ object EventController extends Controller {
       broadcastTime = eventBroadcastTime,
       invokerId = eventInvokerId,
       toChannelId = eventToChannelId,
-      bodyType = InstructionType.play,
+      bodyType = EventType.play,
       body = user
     )
 
@@ -70,7 +70,7 @@ object EventController extends Controller {
       createTime = System.currentTimeMillis(),
       broadcastTime = System.currentTimeMillis(),
       toChannelId = channelId,
-      bodyType = InstructionType.message,
+      bodyType = EventType.message,
       body = Message(text)
     )
     messageEvents += userConverter.toDBObject(event)

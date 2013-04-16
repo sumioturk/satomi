@@ -32,7 +32,7 @@ class EventJsonFormatTest extends org.specs2.mutable.Specification {
   val eventToChannelId = UUID.randomUUID().toString
   val eventPosition = 34567L
   val eventInstruction = UUID.randomUUID().toString
-  val eventBodyType = InstructionType.play
+  val eventBodyType = EventType.play
   val eventMessage = "watzup"
 
   "Event[User]" should {
@@ -45,7 +45,7 @@ class EventJsonFormatTest extends org.specs2.mutable.Specification {
         broadcastTime = eventBroadcastTime,
         invokerId = eventInvokerId,
         toChannelId = eventToChannelId,
-        bodyType = InstructionType.play,
+        bodyType = EventType.play,
         body = user
       )
       event must_== Json.fromJson[Event[User]](Json.toJson(event)).get

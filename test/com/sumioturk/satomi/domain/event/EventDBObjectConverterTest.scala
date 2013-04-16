@@ -41,7 +41,7 @@ class EventDBObjectConverterTest extends org.specs2.mutable.Specification {
         broadcastTime = eventBroadcastTime,
         invokerId = eventInvokerId,
         toChannelId = eventToChannelId,
-        bodyType = InstructionType.play,
+        bodyType = EventType.play,
         body = user
       )
       event must_== converter.fromDBObject(converter.toDBObject(event))

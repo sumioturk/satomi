@@ -28,7 +28,7 @@ object EventJsonFormat {
                         broadcastTime = broadcastTime,
                         invokerId = invokerId,
                         toChannelId = toChannelId,
-                        bodyType = InstructionType.withName(bodyType),
+                        bodyType = EventType.withName(bodyType),
                         body = Json.fromJson[T](body).get
                       )
                     )

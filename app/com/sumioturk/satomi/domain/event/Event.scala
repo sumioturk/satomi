@@ -1,7 +1,7 @@
 package com.sumioturk.satomi.domain.event
 
 import com.sumioturk.satomi.domain.Entity
-import com.sumioturk.satomi.domain.event.InstructionType.InstructionType
+import com.sumioturk.satomi.domain.event.EventType.InstructionType
 
 /**
  * (C) Copyright 2013 OMCAS Inc.
