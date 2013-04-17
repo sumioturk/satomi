@@ -8,17 +8,16 @@ import play.api.libs.concurrent.Promise
 import scala.concurrent.{Future, ExecutionContext}
 import ExecutionContext.Implicits.global
 import com.mongodb.casbah.MongoConnection
-import com.sumioturk.satomi.domain.user.{User, UserDBObjectConverter}
-import play.api.libs.json.Json
 import play.api.libs.iteratee.Enumerator.TreatCont0
 import java.util.concurrent.TimeUnit
 import org.bson.types.ObjectId
-import com.sumioturk.satomi.domain.event.EventDBObjectConverter
+import com.sumioturk.satomi.domain.event.{Event, EventDBObjectConverter}
 import com.sumioturk.satomi.domain.event.EventJsonFormat._
 import com.sumioturk.satomi.domain.message.MessageJsonFormat.messageWrite
 import scala.Some
 import com.sumioturk.satomi.domain.message.{MessageJsonFormat, MessageDBObjectConverter, Message}
 import com.mongodb.casbah.commons.MongoDBObject
+import play.api.libs.json.Json
 
 object StreamController extends Controller {
 
@@ -36,7 +35,7 @@ object StreamController extends Controller {
 
   def pollMQ(channelId: String, userId: String): Enumerator[String] = {
     generateM {
-      Promise.timeout(chunk(channelId, userId), 10, TimeUnit.MILLISECONDS)
+      Promise.timeout(chunk(channelId, userId), 1000, TimeUnit.MILLISECONDS)
     }
   }
 
@@ -63,45 +62,42 @@ object StreamController extends Controller {
   }
 
   private def chunk(channelId: String, userId: String): Option[String] = {
-    //System.out.println("chunk called")
-    if (sent.find().filter(obj => obj.get("id") == userId) isEmpty) {
-      val lastId = ObjectId.massageToObjectId(messageEvent.find().filter(
-        obj =>
-          obj.get("toChannelId") == channelId
-      ).maxBy(obj => ObjectId.massageToObjectId(obj.get("id").asInstanceOf[String])).get("id").asInstanceOf[String])
+    sent.findOne("userId" $in List(userId)) match {
+      case None =>
+        System.out.println("None Last")
+        sent.insert(MongoDBObject("userId" -> userId, "last" -> ObjectId.get()))
+        chunk(channelId, userId)
+      case Some(entry) =>
+        System.out.println("Some Last")
+        val last = entry
+        System.out.println("last")
+        val messages = messageEvent.find().filter(
+          obj => ObjectId.massageToObjectId(obj.get("id").asInstanceOf[String]).compareTo(last.get("last").asInstanceOf[ObjectId]) > 0
+        ).filter(
+          message => message.get("toChannelId").asInstanceOf[String] == channelId
+        ).map {
+          message =>
+            new EventDBObjectConverter[Message](
+              MessageJsonFormat.messageRead,
+              MessageDBObjectConverter
+            ).fromDBObject(message)
+        }
+        System.out.println("messages: %s".format(messages.length))
+        messages isEmpty match {
+          case true =>
+            System.out.println("Why None? ")
+            Some(messages.length.toString + "\r\n")
+          case false =>
+            val lastMessage = messages.maxBy(message => ObjectId.massageToObjectId(message.id))
+            val userSent = sent.findOne(MongoDBObject("userId" -> userId)).get
+            System.out.println("findOne")
+            userSent.update("last", ObjectId.massageToObjectId(lastMessage.id))
+            System.out.println("update")
+            System.out.println("Some!")
+            Some(messages.toList.foldLeft("")((m: String, n: Event[Message]) => m + Json.toJson(n).toString()))
+        }
+    }
 
-      //System.out.println("empty last: %s".format(lastId.toString))
-      sent += MongoDBObject(
-        "userId" -> userId,
-        "last" -> lastId
-      )
-      //System.out.println("empty")
-    }
-    val last = sent.find().filter(obj => obj.get("userId").asInstanceOf[String] == userId).maxBy(obj => obj.get("last").asInstanceOf[ObjectId])
-    //System.out.println("last: %s".format(last.get("last").asInstanceOf[ObjectId].toString))
-    val messages = messageEvent.find().filter(
-      obj => ObjectId.massageToObjectId(obj.get("id").asInstanceOf[String]).compareTo(last.get("last").asInstanceOf[ObjectId]) > 0
-    ).filter(
-      message => message.get("toChannelId").asInstanceOf[String] == channelId
-    ).map {
-      message =>
-        sent.insert(MongoDBObject("userId" -> userId, "last" -> ObjectId.massageToObjectId(message.get("id").asInstanceOf[String])))
-        Json.toJson(
-          new EventDBObjectConverter[Message](
-            MessageJsonFormat.messageRead,
-            MessageDBObjectConverter
-          ).fromDBObject(message)).toString
-    }
-
-    //System.out.println("before match")
-    messages.isEmpty match {
-      case true =>
-        //System.out.println("None")
-        None
-      case false =>
-        //System.out.println("Some");
-        Some(messages.foldLeft("")(_ + "\r\n" + _) + "\r\n")
-    }
   }
 
   def connect(userId: String, channelId: String) = Action {
