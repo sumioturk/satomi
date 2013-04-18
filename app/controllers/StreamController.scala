@@ -11,7 +11,7 @@ import com.mongodb.casbah.MongoConnection
 import play.api.libs.iteratee.Enumerator.TreatCont0
 import java.util.concurrent.TimeUnit
 import org.bson.types.ObjectId
-import com.sumioturk.satomi.domain.event.{Event, EventDBObjectConverter}
+import com.sumioturk.satomi.domain.event.EventDBObjectConverter
 import com.sumioturk.satomi.domain.event.EventJsonFormat._
 import com.sumioturk.satomi.domain.message.MessageJsonFormat.messageWrite
 import scala.Some
@@ -28,14 +28,9 @@ object StreamController extends Controller {
 
   implicit val eventWrite = getEventWrites[Message]
 
-  /**
-   * A String Enumerator producing a formatted Time message every 100 millis.
-   * A callback enumerator is pure an can be applied on several Iteratee.
-   */
-
   def pollMQ(channelId: String, userId: String): Enumerator[String] = {
     generateM {
-      Promise.timeout(chunk(channelId, userId), 1000, TimeUnit.MILLISECONDS)
+      Promise.timeout(chunk(channelId, userId), 10, TimeUnit.MILLISECONDS)
     }
   }
 
@@ -64,13 +59,10 @@ object StreamController extends Controller {
   private def chunk(channelId: String, userId: String): Option[String] = {
     sent.findOne("userId" $in List(userId)) match {
       case None =>
-        System.out.println("None Last")
         sent.insert(MongoDBObject("userId" -> userId, "last" -> ObjectId.get()))
         chunk(channelId, userId)
       case Some(entry) =>
-        System.out.println("Some Last")
         val last = entry
-        System.out.println("last")
         val messages = messageEvent.find().filter(
           obj => ObjectId.massageToObjectId(obj.get("id").asInstanceOf[String]).compareTo(last.get("last").asInstanceOf[ObjectId]) > 0
         ).filter(
@@ -81,23 +73,19 @@ object StreamController extends Controller {
               MessageJsonFormat.messageRead,
               MessageDBObjectConverter
             ).fromDBObject(message)
-        }
-        System.out.println("messages: %s".format(messages.length))
-        messages isEmpty match {
+        }.toList
+
+        messages.isEmpty match {
           case true =>
-            System.out.println("Why None? ")
-            Some(messages.length.toString + "\r\n")
+            None
           case false =>
             val lastMessage = messages.maxBy(message => ObjectId.massageToObjectId(message.id))
             val userSent = sent.findOne(MongoDBObject("userId" -> userId)).get
-            System.out.println("findOne")
-            userSent.update("last", ObjectId.massageToObjectId(lastMessage.id))
-            System.out.println("update")
-            System.out.println("Some!")
-            Some(messages.toList.foldLeft("")((m: String, n: Event[Message]) => m + Json.toJson(n).toString()))
+            sent.update(userSent, MongoDBObject("userId" -> userId, "last" -> ObjectId.massageToObjectId(lastMessage.id)))
+            val messageStrings = messages.map(m => Json.toJson(m).toString())
+            Some(messageStrings.foldLeft("\r\n")((s: String, t: String) => s + "\r\n" + t))
         }
     }
-
   }
 
   def connect(userId: String, channelId: String) = Action {
