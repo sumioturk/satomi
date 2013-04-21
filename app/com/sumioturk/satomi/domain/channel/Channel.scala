@@ -1,6 +1,7 @@
 package com.sumioturk.satomi.domain.channel
 
 import com.sumioturk.satomi.domain.user.User
+import com.sumioturk.satomi.domain.Entity
 
 /**
  * (C) Copyright 2013 OMCAS Inc.
@@ -10,4 +11,4 @@ import com.sumioturk.satomi.domain.user.User
  *
  */
 
-case class Channel(id: String, name: String, users: List[User])
+case class Channel(id: String, name: String, users: List[User]) extends Entity

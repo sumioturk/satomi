@@ -20,7 +20,7 @@ import org.bson.types.ObjectId
  *
  */
 
-object UserController extends Controller {
+object UserController extends CRUDController {
 
   val mongoColl = MongoConnection()("satomi")("User")
 

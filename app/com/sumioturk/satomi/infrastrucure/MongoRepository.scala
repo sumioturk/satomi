@@ -41,4 +41,11 @@ class MongoRepository[T <: Entity]
     mongoColl.update(MongoDBObject("id" -> entity.id), converter.toDBObject(entity))
   }
 
+  def resolveAll(): List[T] = {
+    mongoColl.find().toList map {
+      obj =>
+        converter.fromDBObject(obj)
+    }
+  }
+
 }

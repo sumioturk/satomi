@@ -11,6 +11,13 @@ GET     /user/:id                   controllers.UserController.read(id: String)
 DELETE  /user/:id                   controllers.UserController.delete(id: String)
 PUT     /user/:id                   controllers.UserController.update(id: String)
 
+# Channel API
+POST    /channel                       controllers.ChannelController.create()
+GET     /channel/:id                   controllers.ChannelController.read(id: String)
+DELETE  /channel/:id                   controllers.ChannelController.delete(id: String)
+PUT     /channel/:id                   controllers.ChannelController.update(id: String)
+GET     /channels                      controllers.ChannelController.channels()
+
 # Event API
 GET     /event/show                         controllers.EventController.show
 GET     /event/message/:channelId/:text     controllers.EventController.message(channelId: String, text: String)
