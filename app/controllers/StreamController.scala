@@ -2,7 +2,6 @@ package controllers
 
 
 import play.api.mvc._
-import com.mongodb.casbah.query.Imports._
 import play.api.libs.iteratee._
 import play.api.libs.concurrent.Promise
 import scala.concurrent.{Future, ExecutionContext}
@@ -11,7 +10,7 @@ import com.mongodb.casbah.MongoConnection
 import play.api.libs.iteratee.Enumerator.TreatCont0
 import java.util.concurrent.TimeUnit
 import org.bson.types.ObjectId
-import com.sumioturk.satomi.domain.event.EventDBObjectConverter
+import com.sumioturk.satomi.domain.event.{Event, EventDBObjectConverter}
 import com.sumioturk.satomi.domain.event.EventJsonFormat._
 import com.sumioturk.satomi.domain.message.MessageJsonFormat.messageWrite
 import scala.Some
@@ -22,15 +21,16 @@ import play.api.libs.json.Json
 object StreamController extends Controller {
 
 
-  val sent = MongoConnection()("satomi")("sent")
+  val sent = MongoConnection()("satomi")
+  val queue = MongoConnection()("satomi")
   val messageEvent = MongoConnection()("satomi")("MessageEvent")
   val mongoColl = MongoConnection()("satomi")("User")
 
   implicit val eventWrite = getEventWrites[Message]
 
-  def pollMQ(channelId: String, userId: String): Enumerator[String] = {
+  def pollMQ(userId: String): Enumerator[String] = {
     generateM {
-      Promise.timeout(chunk(channelId, userId), 10, TimeUnit.MILLISECONDS)
+      Promise.timeout(chunk(userId), 10, TimeUnit.MILLISECONDS)
     }
   }
 
@@ -56,17 +56,19 @@ object StreamController extends Controller {
     }
   }
 
-  private def chunk(channelId: String, userId: String): Option[String] = {
-    sent.findOne("userId" $in List(userId)) match {
-      case None =>
-        sent.insert(MongoDBObject("userId" -> userId, "last" -> ObjectId.get()))
-        chunk(channelId, userId)
-      case Some(entry) =>
-        val last = entry
-        val messages = messageEvent.find().filter(
-          obj => ObjectId.massageToObjectId(obj.get("id").asInstanceOf[String]).compareTo(last.get("last").asInstanceOf[ObjectId]) > 0
-        ).filter(
-          message => message.get("toChannelId").asInstanceOf[String] == channelId
+  private def chunk(userId: String): Option[String] = {
+    val userLasts = sent("UserLasts_" + userId)
+    val userQueue = queue("user_" + userId)
+    val lasts = userLasts.find().toList
+    lasts isEmpty match {
+      case true =>
+        userLasts.insert(MongoDBObject("last" -> ObjectId.get()))
+        chunk(userId)
+      case false =>
+        val last = lasts.maxBy(obj => obj.get("id").asInstanceOf[ObjectId])
+        val messages = userQueue.find().filter(
+          obj => ObjectId.massageToObjectId(obj.get("id").asInstanceOf[String])
+            .compareTo(last.get("last").asInstanceOf[ObjectId]) > 0
         ).map {
           message =>
             new EventDBObjectConverter[Message](
@@ -74,30 +76,26 @@ object StreamController extends Controller {
               MessageDBObjectConverter
             ).fromDBObject(message)
         }.toList
-
         messages.isEmpty match {
           case true =>
             None
           case false =>
             val lastMessage = messages.maxBy(message => ObjectId.massageToObjectId(message.id))
-            val userSent = sent.findOne(MongoDBObject("userId" -> userId)).get
-            sent.update(userSent, MongoDBObject("userId" -> userId, "last" -> ObjectId.massageToObjectId(lastMessage.id)))
-            val messageStrings = messages.map(m => Json.toJson(m).toString())
-            Some(messageStrings.foldLeft("\r\n")((s: String, t: String) => s + "\r\n" + t))
+            userLasts.update(last, MongoDBObject("last" -> ObjectId.massageToObjectId(lastMessage.id)))
+            Some("\r\n" + Json.toJson[List[Event[Message]]](messages).toString + "\r\n")
         }
     }
   }
 
-  def connect(userId: String, channelId: String) = Action {
+  def connect(userId: String) = Action {
     req =>
-      sent.drop()
       req.getQueryString("key") match {
         case None =>
           Forbidden("You are not authorized")
         case Some(string) =>
           string match {
             case "secret" =>
-              Ok.stream(pollMQ(channelId, userId))
+              Ok.stream(pollMQ(userId))
             case _ =>
               Forbidden("You are not authorized")
           }

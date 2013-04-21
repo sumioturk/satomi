@@ -5,7 +5,7 @@ import com.sumioturk.satomi.infrastrucure.MongoRepository
 import com.sumioturk.satomi.domain.channel.{ChannelDBObjectConverter, Channel}
 import play.api.mvc.{AnyContent, Action}
 import org.bson.types.ObjectId
-import com.sumioturk.satomi.domain.user.User
+import com.sumioturk.satomi.domain.user.{UserDBObjectConverter, User}
 import play.api.libs.json.Json._
 import play.api.libs.concurrent.Akka
 import play.api.Play.current
@@ -24,11 +24,17 @@ import com.sumioturk.satomi.domain.channel.ChannelJsonFormat._
 
 object ChannelController extends CRUDController {
 
-  val mongoColl = MongoConnection()("satomi")("Channel")
+  val channelColl = MongoConnection()("satomi")("Channel")
+  val userColl = MongoConnection()("satomi")("User")
 
   val channelRepo = new MongoRepository[Channel](
     ChannelDBObjectConverter,
-    mongoColl
+    channelColl
+  )
+
+  val userRepo = new MongoRepository[User](
+    UserDBObjectConverter,
+    userColl
   )
 
   def create(): Action[AnyContent] = Action {
@@ -109,5 +115,26 @@ object ChannelController extends CRUDController {
           Ok(toJson[List[Channel]](channels))
       }
     }
+  }
+
+  def join(channelId: String, userId: String) = Action {
+    userRepo.resolve(userId) match {
+      case None =>
+        NotFound("Not Found %s".format(userId))
+      case Some(user) =>
+        channelRepo.resolve(channelId) match {
+          case None =>
+            NotFound("Not Found Channel %s".format(channelId))
+          case Some(channel) =>
+            val newChannel = Channel(
+              id = channel.id,
+              name = channel.name,
+              users = channel.users.filterNot(_ == user) ++ List(user)
+            )
+            channelRepo.update(newChannel)
+            Ok(toJson[Channel](newChannel))
+        }
+    }
+
   }
 }

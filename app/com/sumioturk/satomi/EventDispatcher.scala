@@ -9,6 +9,8 @@ import scala.annotation.tailrec
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext
 import ExecutionContext.Implicits.global
+import com.sumioturk.satomi.infrastrucure.MongoRepository
+import com.sumioturk.satomi.domain.channel.{ChannelDBObjectConverter, Channel}
 
 /**
  * (C) Copyright 2013 OMCAS Inc.
@@ -87,14 +89,29 @@ object EventDispatcher extends App {
         obj.map {
           a =>
             val channelId = a.get("toChannelId").asInstanceOf[String]
-            val coll = connectionPool("master")("satomi")("channel_" + channelId)
-            val result = coll += a
-            // is this really working?
-            result.getCachedLastError == null match {
-              case true =>
-                sender ! DistSuccess(a)
-              case _ =>
-                sender ! DistError(a)
+            val channelColl = connectionPool("master")("satomi")("Channel")
+            val channelRepo = new MongoRepository[Channel](
+              ChannelDBObjectConverter,
+              channelColl
+            )
+
+            channelRepo.resolve(channelId) match {
+              case None =>
+                Unit
+              case Some(channel) =>
+                channel.users map {
+                  user =>
+                    logger.info("Distributing message to %s in %s".format(user.id, channelId))
+                    val coll = connectionPool("master")("satomi")("user_" + user.id)
+                    val result = coll += a
+                    // is this really working?
+                    result.getCachedLastError == null match {
+                      case true =>
+                        sender ! DistSuccess(a)
+                      case _ =>
+                        sender ! DistError(a)
+                    }
+                }
             }
         }
     }
@@ -129,25 +146,26 @@ object EventDispatcher extends App {
 
     def receive = {
       case StartDist =>
+        sent = 0
+        size = 0
         val messages = connectionPool("master")("satomi")("MessageEvent").find().slice(0, 100).toList
         size = messages.length
-        loop(messages, 0, messages.length)
-        if (size == sent) {
+        if (size == 0) {
           context.system.scheduler.scheduleOnce(Duration.Zero, self, StartDist)
         }
+        loop(messages, 0, messages.length)
       case DistSuccess(obj) =>
         sent = sent + 1
         val coll = connectionPool("master")("satomi")("MessageEvent")
         coll.remove(obj)
         sent == size match {
           case true =>
-            sent = 0
-            size = 0
             context.system.scheduler.scheduleOnce(Duration.Zero, self, StartDist)
           case false =>
             Unit
         }
       case DistError(obj) =>
+        sent = sent + 1
     }
 
 

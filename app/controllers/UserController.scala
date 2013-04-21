@@ -97,4 +97,8 @@ object UserController extends CRUDController {
       }
   }
 
+  def users() = Action {
+    Ok(toJson(userRepo.resolveAll()))
+  }
+
 }

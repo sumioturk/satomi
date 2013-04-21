@@ -24,11 +24,13 @@ object EventController extends Controller {
 
   val userEvents = MongoConnection()("satomi")("UserEvent")
   val playEvent = MongoConnection()("satomi")("PlayEvent")
-  val messageEvents = MongoConnection()("satomi")("MessageEvent")
+  val messageEvents = MongoConnection()
 
-  val converter = new EventDBObjectConverter[User](UserJsonFormat.userRead, UserDBObjectConverter)
+  val userConverter = new EventDBObjectConverter[User](UserJsonFormat.userRead, UserDBObjectConverter)
+  val messageConverter = new EventDBObjectConverter[Message](MessageJsonFormat.messageRead, MessageDBObjectConverter)
 
   implicit val eventWrite = getEventWrites[User](UserJsonFormat.userWrite)
+  implicit val messageWrite = getEventWrites[Message](MessageJsonFormat.messageWrite)
 
   def show = Action {
     val uuid = UUID.randomUUID().toString
@@ -56,15 +58,14 @@ object EventController extends Controller {
       body = user
     )
 
-    userEvents += converter.toDBObject(event)
-    Ok(Json.toJson[Event[User]](converter.fromDBObject(userEvents.findOne(MongoDBObject("id" -> eventId)).get)))
+    userEvents += userConverter.toDBObject(event)
+    Ok(Json.toJson[Event[User]](userConverter.fromDBObject(userEvents.findOne(MongoDBObject("id" -> eventId)).get)))
 
   }
 
 
   def message(channelId: String, text: String) = Action {
     //play.Logger.info("channelId: %s text: %s".format(channelId, text))
-    val userConverter = new EventDBObjectConverter[Message](MessageJsonFormat.messageRead, MessageDBObjectConverter)
     val event = Event[Message](
       id = ObjectId.get.toString,
       invokerId = "1",
@@ -74,8 +75,12 @@ object EventController extends Controller {
       bodyType = EventType.message,
       body = Message(text)
     )
-    messageEvents += userConverter.toDBObject(event)
+    messageEvents("satomi")("MessageEvent") += messageConverter.toDBObject(event)
     Ok
+  }
+
+  def events(id: String) = Action {
+    Ok(Json.toJson[List[Event[Message]]](messageEvents("satomi")("user_" + id).find().map(obj => messageConverter.fromDBObject(obj)).toList))
   }
 
 
