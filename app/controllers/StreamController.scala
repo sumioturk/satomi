@@ -82,7 +82,8 @@ object StreamController extends Controller {
           case false =>
             val lastMessage = messages.maxBy(message => ObjectId.massageToObjectId(message.id))
             userLasts.update(last, MongoDBObject("last" -> ObjectId.massageToObjectId(lastMessage.id)))
-            Some("\r\n" + Json.toJson[List[Event[Message]]](messages).toString + "\r\n")
+            val chunk = Json.toJson[List[Event[Message]]](messages).toString
+            Some("%x".format(chunk.length)   + "\r\n" + chunk + "\r\n")
         }
     }
   }
