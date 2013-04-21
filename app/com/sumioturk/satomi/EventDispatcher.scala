@@ -1,12 +1,14 @@
 package com.sumioturk.satomi
 
-import akka.actor.{ActorRef, Actor, Props, ActorSystem}
+import akka.actor._
 import akka.event.Logging
 import akka.routing.RoundRobinRouter
 import com.mongodb.casbah.MongoConnection
 import com.mongodb.DBObject
 import scala.annotation.tailrec
 import scala.concurrent.duration._
+import scala.concurrent.ExecutionContext
+import ExecutionContext.Implicits.global
 
 /**
  * (C) Copyright 2013 OMCAS Inc.
@@ -23,13 +25,16 @@ object EventDispatcher extends App {
 
   case object Terminate extends Message
 
-  object StartDispatch extends Message
+  object StartDist extends Message
 
-  case class Work(obj: List[DBObject], from: Int, to: Int, connectionId: String) extends Message
+  case class DistWork(obj: List[DBObject], from: Int, to: Int, connectionId: String) extends Message
 
-  case class Dispatched(from: Int, to: Int) extends Message
+  case class DistSuccess(obj: DBObject) extends Message
+
+  case class DistError(obj: DBObject) extends Message
 
 
+  /** this supposed to be a connection pool */
   val connectionPool = Map(
     "master" -> MongoConnection(),
     "0" -> MongoConnection(),
@@ -69,61 +74,80 @@ object EventDispatcher extends App {
   )
 
 
+  /**
+   * This Worker tries to store dbobject to db.
+   * Send DistSuccess message to a master if write is successful, otherwise send DistError message to the master
+   */
   class Worker extends Actor {
 
     val logger = Logging(context.system, this)
 
     def receive = {
-      case Work(obj, from, to, connectionId) =>
-        //logger.info("connectionId: %s".format(connectionId))
+      case DistWork(obj, from, to, connectionId) =>
         obj.map {
           a =>
             val channelId = a.get("toChannelId").asInstanceOf[String]
             val coll = connectionPool("master")("satomi")("channel_" + channelId)
-            coll += a
-            sender ! Dispatched(from, to)
+            val result = coll += a
+            // is this really working?
+            result.getCachedLastError == null match {
+              case true =>
+                sender ! DistSuccess(a)
+              case _ =>
+                sender ! DistError(a)
+            }
         }
     }
   }
 
+  /**
+   * The master chief.
+   * @param numOfWorkers
+   * @param listener
+   */
   class Master(numOfWorkers: Int, listener: ActorRef) extends Actor {
 
     val logger = Logging(context.system, this)
 
-    val start = System.currentTimeMillis();
+    val start = System.currentTimeMillis()
+
+    val chunkSize = 10
 
     var sent = 0
 
-    val chunkSize = 1
-
-    var dispatched = 0
+    var size = 0
 
     val workerRouter = context.actorOf(Props[Worker].withRouter(RoundRobinRouter(numOfWorkers)), name = "workerRouter")
-
 
     override def preStart() = {
 
       logger.info("schedule start")
 
-      system.scheduler.schedule(0 milliseconds, 5000 milliseconds, self, StartDispatch)
+      master ! StartDist
 
     }
 
     def receive = {
-      case StartDispatch =>
-        val messages = connectionPool("master")("satomi")("MessageEvent").find().slice(0, 10000).toList
-        dispatched = Math.ceil(messages.length / chunkSize).toInt
+      case StartDist =>
+        val messages = connectionPool("master")("satomi")("MessageEvent").find().slice(0, 100).toList
+        size = messages.length
         loop(messages, 0, messages.length)
-      case Dispatched(from, to) =>
-        //logger.info("dispatched! %d -- %d".format(from, to))
+        if (size == sent) {
+          context.system.scheduler.scheduleOnce(Duration.Zero, self, StartDist)
+        }
+      case DistSuccess(obj) =>
         sent = sent + 1
-        dispatched == sent match {
+        val coll = connectionPool("master")("satomi")("MessageEvent")
+        coll.remove(obj)
+        sent == size match {
           case true =>
-            logger.error("duration : %d".format(System.currentTimeMillis() - start))
-            listener ! Terminate
+            sent = 0
+            size = 0
+            context.system.scheduler.scheduleOnce(Duration.Zero, self, StartDist)
           case false =>
             Unit
         }
+      case DistError(obj) =>
     }
 
 
@@ -131,12 +155,10 @@ object EventDispatcher extends App {
     final def loop(messages: List[DBObject], from: Int, length: Int): Unit = {
       from > length match {
         case true =>
-        //logger.info("from > length")
+          Unit
         case false =>
-          //logger.info("from <= length")
           val to = from + chunkSize
-          //logger.info("%d --- %d".format(from, to))
-          workerRouter ! Work(messages.slice(from, to), from, to, Math.ceil((Math.random() * 10000) % 2).toInt.toString)
+          workerRouter ! DistWork(messages.slice(from, to), from, to, Math.ceil((Math.random() * 10000) % 2).toInt.toString)
           loop(messages, to, length)
       }
     }
@@ -149,20 +171,13 @@ object EventDispatcher extends App {
     def receive = {
       case Terminate =>
         logger.info("Terminating...")
-        context.system.shutdown()
     }
   }
 
+  val mySystem = ActorSystem("EventDispatcher")
 
-  val system = ActorSystem("EventODispatcher")
+  val listener = mySystem.actorOf(Props[Listener], name = "listener")
 
-  val listener = system.actorOf(Props[Listener], name = "listener")
-
-  val master = system.actorOf(Props(new Master(100, listener)), name = "master")
-
-  //system.scheduler.scheduleOnce(Duration.Zero) {
-  //  master ! StartDispatch
-  //}
-
+  val master = mySystem.actorOf(Props(new Master(100, listener)), name = "master")
 
 }

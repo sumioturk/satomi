@@ -63,6 +63,7 @@ object EventController extends Controller {
 
 
   def message(channelId: String, text: String) = Action {
+    //play.Logger.info("channelId: %s text: %s".format(channelId, text))
     val userConverter = new EventDBObjectConverter[Message](MessageJsonFormat.messageRead, MessageDBObjectConverter)
     val event = Event[Message](
       id = ObjectId.get.toString,
