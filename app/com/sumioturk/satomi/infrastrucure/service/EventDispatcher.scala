@@ -1,4 +1,4 @@
-package com.sumioturk.satomi.domain.event
+package com.sumioturk.satomi.infrastrucure.service
 
 import akka.actor._
 import akka.event.Logging
