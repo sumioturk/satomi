@@ -1,4 +1,4 @@
-package com.sumioturk.satomi.domain.event
+package controllers
 
 import akka.actor._
 import akka.event.Logging
@@ -21,7 +21,7 @@ import com.sumioturk.satomi.domain.channel.{ChannelDBObjectConverter, Channel}
  */
 
 
-object EventDispatcher extends App {
+object EventDispatcher {
 
   sealed trait Message
 
@@ -140,7 +140,7 @@ object EventDispatcher extends App {
 
       logger.info("schedule start")
 
-      master ! StartDist
+      //master ! StartDist
 
     }
 
@@ -188,7 +188,8 @@ object EventDispatcher extends App {
 
     def receive = {
       case Terminate =>
-        logger.info("Terminating...")
+        logger.info("Terminating...akka system")
+        mySystem.shutdown()
     }
   }
 
@@ -197,5 +198,14 @@ object EventDispatcher extends App {
   val listener = mySystem.actorOf(Props[Listener], name = "listener")
 
   val master = mySystem.actorOf(Props(new Master(100, listener)), name = "master")
+
+  def start() = {
+    master ! StartDist
+  }
+
+  def terminate() = {
+    listener ! Terminate
+  }
+
 
 }

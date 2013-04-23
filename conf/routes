@@ -23,7 +23,7 @@ GET     /channels                   controllers.ChannelController.channels()
 # Event API
 GET     /event/show                 controllers.EventController.show
 GET     /event/message/:cId/:text   controllers.EventController.message(cId: String, text: String)
-GET     /events/:id                     controllers.EventController.events(id: String)
+GET     /events/:id                 controllers.EventController.events(id: String)
 # Stream API
 GET     /stream/connect/:uId        controllers.StreamController.connect(uId: String)
 
