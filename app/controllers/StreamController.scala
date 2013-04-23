@@ -76,13 +76,27 @@ object StreamController extends Controller {
               MessageDBObjectConverter
             ).fromDBObject(message)
         }.toList
-        messages.isEmpty match {
+
+        val newMessages = messages.map {
+          message =>
+            Event[Message](
+            id = message.id,
+            createTime = message.createTime,
+            broadcastTime = System.currentTimeMillis(),
+            invokerId = message.invokerId,
+            bodyType = message.bodyType,
+            toChannelId = message.toChannelId,
+            body =message.body
+            )
+        }
+
+        newMessages.isEmpty match {
           case true =>
             None
           case false =>
-            val lastMessage = messages.maxBy(message => ObjectId.massageToObjectId(message.id))
+            val lastMessage = newMessages.maxBy(message => ObjectId.massageToObjectId(message.id))
             userLasts.update(last, MongoDBObject("last" -> ObjectId.massageToObjectId(lastMessage.id)))
-            val chunk = Json.toJson[List[Event[Message]]](messages).toString
+            val chunk = Json.toJson[List[Event[Message]]](newMessages).toString
             Some("%x".format(chunk.length)   + "\r\n" + chunk + "\r\n")
         }
     }
