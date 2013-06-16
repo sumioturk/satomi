@@ -10,6 +10,7 @@ import com.mongodb.casbah.commons.MongoDBObject
 import java.util.UUID
 import com.sumioturk.satomi.domain.message.{MessageDBObjectConverter, MessageJsonFormat, Message}
 import org.bson.types.ObjectId
+import com.sumioturk.satomi.infrastrucure.MongoRepository
 
 
 /**
@@ -25,6 +26,12 @@ object EventController extends Controller {
   val userEvents = MongoConnection()("satomi")("UserEvent")
   val playEvent = MongoConnection()("satomi")("PlayEvent")
   val messageEvents = MongoConnection()
+
+  val mongoColl = MongoConnection()("satomi")("User")
+
+  val userRepo = new MongoRepository[User](
+    UserDBObjectConverter,
+    mongoColl)
 
   val userConverter = new EventDBObjectConverter[User](UserJsonFormat.userRead, UserDBObjectConverter)
   val messageConverter = new EventDBObjectConverter[Message](MessageJsonFormat.messageRead, MessageDBObjectConverter)
@@ -64,19 +71,24 @@ object EventController extends Controller {
   }
 
 
-  def message(channelId: String, text: String) = Action {
+  def message(channelId: String, userId: String, text: String) = Action {
     //play.Logger.info("channelId: %s text: %s".format(channelId, text))
-    val event = Event[Message](
-      id = ObjectId.get.toString,
-      invokerId = "1",
-      createTime = System.currentTimeMillis(),
-      broadcastTime = System.currentTimeMillis(),
-      toChannelId = channelId,
-      bodyType = EventType.message,
-      body = Message(text)
-    )
-    messageEvents("satomi")("MessageEvent") += messageConverter.toDBObject(event)
-    Ok
+    userRepo.resolve(userId) match {
+      case Some(user) =>
+        val event = Event[Message](
+          id = ObjectId.get.toString,
+          invokerId = userId,
+          createTime = System.currentTimeMillis(),
+          broadcastTime = System.currentTimeMillis(),
+          toChannelId = channelId,
+          bodyType = EventType.message,
+          body = Message(text)
+        )
+        messageEvents("satomi")("MessageEvent") += messageConverter.toDBObject(event)
+        Ok
+      case None =>
+        Forbidden("User not found");
+    }
   }
 
   def events(id: String) = Action {
