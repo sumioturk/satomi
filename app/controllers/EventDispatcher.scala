@@ -35,6 +35,8 @@ object EventDispatcher {
 
   case class DistError(obj: DBObject) extends Message
 
+  val conn = MongoConnection()
+
 
   /**
    * This Worker tries to store dbobject to db.
@@ -49,12 +51,11 @@ object EventDispatcher {
         obj.map {
           a =>
             val channelId = a.get("toChannelId").asInstanceOf[String]
-            val channelColl = MongoConnection()("satomi")("Channel")
+            val channelColl = conn("satomi")("Channel")
             val channelRepo = new MongoRepository[Channel](
               ChannelDBObjectConverter,
               channelColl
             )
-
             channelRepo.resolve(channelId) match {
               case None =>
                 Unit
@@ -62,7 +63,7 @@ object EventDispatcher {
                 channel.users map {
                   user =>
                     logger.info("Distributing message to %s in %s".format(user.id, channelId))
-                    val coll = MongoConnection()("satomi")("user_" + user.id)
+                    val coll = conn("satomi")("user_" + user.id)
                     val result = coll += a
                     // is this really working?
                     result.getCachedLastError == null match {
@@ -106,7 +107,7 @@ object EventDispatcher {
       case StartDist =>
         sent = 0
         size = 0
-        val messages = MongoConnection()("satomi")("MessageEvent").find().slice(0, 100).toList
+        val messages = conn("satomi")("MessageEvent").find().slice(0, 100).toList
         size = messages.length
         if (size == 0) {
           context.system.scheduler.scheduleOnce(Duration.Zero, self, StartDist)
@@ -114,7 +115,7 @@ object EventDispatcher {
         loop(messages, 0, messages.length)
       case DistSuccess(obj) =>
         sent = sent + 1
-        val coll = MongoConnection()("satomi")("MessageEvent")
+        val coll = conn("satomi")("MessageEvent")
         coll.remove(obj)
         sent == size match {
           case true =>
