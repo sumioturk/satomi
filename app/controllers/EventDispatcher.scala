@@ -3,7 +3,7 @@ package controllers
 import akka.actor._
 import akka.event.Logging
 import akka.routing.RoundRobinRouter
-import com.mongodb.casbah.MongoConnection
+import com.mongodb.casbah.{MongoCollection, MongoConnection}
 import com.mongodb.DBObject
 import scala.annotation.tailrec
 import scala.concurrent.duration._
@@ -36,46 +36,6 @@ object EventDispatcher {
   case class DistError(obj: DBObject) extends Message
 
 
-  /** this supposed to be a connection pool */
-  val connectionPool = Map(
-    "master" -> MongoConnection(),
-    "0" -> MongoConnection(),
-    "1" -> MongoConnection(),
-    "2" -> MongoConnection(),
-    "3" -> MongoConnection(),
-    "4" -> MongoConnection(),
-    "5" -> MongoConnection(),
-    "6" -> MongoConnection(),
-    "7" -> MongoConnection(),
-    "8" -> MongoConnection(),
-    "9" -> MongoConnection(),
-    "10" -> MongoConnection(),
-    "11" -> MongoConnection(),
-    "12" -> MongoConnection(),
-    "13" -> MongoConnection(),
-    "14" -> MongoConnection(),
-    "15" -> MongoConnection(),
-    "16" -> MongoConnection(),
-    "17" -> MongoConnection(),
-    "18" -> MongoConnection(),
-    "19" -> MongoConnection(),
-    "20" -> MongoConnection(),
-    "21" -> MongoConnection(),
-    "22" -> MongoConnection(),
-    "23" -> MongoConnection(),
-    "24" -> MongoConnection(),
-    "25" -> MongoConnection(),
-    "26" -> MongoConnection(),
-    "27" -> MongoConnection(),
-    "28" -> MongoConnection(),
-    "29" -> MongoConnection(),
-    "30" -> MongoConnection(),
-    "31" -> MongoConnection(),
-    "32" -> MongoConnection(),
-    "33" -> MongoConnection()
-  )
-
-
   /**
    * This Worker tries to store dbobject to db.
    * Send DistSuccess message to a master if write is successful, otherwise send DistError message to the master
@@ -89,7 +49,7 @@ object EventDispatcher {
         obj.map {
           a =>
             val channelId = a.get("toChannelId").asInstanceOf[String]
-            val channelColl = connectionPool("master")("satomi")("Channel")
+            val channelColl = MongoConnection()("satomi")("Channel")
             val channelRepo = new MongoRepository[Channel](
               ChannelDBObjectConverter,
               channelColl
@@ -102,7 +62,7 @@ object EventDispatcher {
                 channel.users map {
                   user =>
                     logger.info("Distributing message to %s in %s".format(user.id, channelId))
-                    val coll = connectionPool("master")("satomi")("user_" + user.id)
+                    val coll = MongoConnection()("satomi")("user_" + user.id)
                     val result = coll += a
                     // is this really working?
                     result.getCachedLastError == null match {
@@ -140,15 +100,13 @@ object EventDispatcher {
 
       logger.info("schedule start")
 
-      //master ! StartDist
-
     }
 
     def receive = {
       case StartDist =>
         sent = 0
         size = 0
-        val messages = connectionPool("master")("satomi")("MessageEvent").find().slice(0, 100).toList
+        val messages = MongoConnection()("satomi")("MessageEvent").find().slice(0, 100).toList
         size = messages.length
         if (size == 0) {
           context.system.scheduler.scheduleOnce(Duration.Zero, self, StartDist)
@@ -156,7 +114,7 @@ object EventDispatcher {
         loop(messages, 0, messages.length)
       case DistSuccess(obj) =>
         sent = sent + 1
-        val coll = connectionPool("master")("satomi")("MessageEvent")
+        val coll = MongoConnection()("satomi")("MessageEvent")
         coll.remove(obj)
         sent == size match {
           case true =>
