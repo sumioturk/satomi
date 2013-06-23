@@ -11,6 +11,7 @@ import java.util.UUID
 import com.sumioturk.satomi.domain.message.{MessageDBObjectConverter, MessageJsonFormat, Message}
 import org.bson.types.ObjectId
 import com.sumioturk.satomi.infrastrucure.MongoRepository
+import play.api.libs.concurrent.Akka
 
 
 /**
@@ -72,7 +73,6 @@ object EventController extends Controller {
 
 
   def message(channelId: String, userId: String, text: String) = Action {
-    //play.Logger.info("channelId: %s text: %s".format(channelId, text))
     userRepo.resolve(userId) match {
       case Some(user) =>
         val event = Event[Message](
@@ -84,8 +84,12 @@ object EventController extends Controller {
           bodyType = EventType.message,
           body = Message(text)
         )
-        messageEvents("satomi")("MessageEvent") += messageConverter.toDBObject(event)
-        Ok
+        Async {
+          Akka.future(messageEvents("satomi")("MessageEvent") += messageConverter.toDBObject(event)) map {
+            something =>
+              Ok
+          }
+        }
       case None =>
         Forbidden("User not found");
     }
